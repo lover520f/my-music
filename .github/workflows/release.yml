@@ -31,7 +31,11 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleRelease -PreleaseKeystoreFile=app/my-release-key.jks -PreleaseKeyAlias=my-key-alias -PreleaseStorePassword=android -PreleaseKeyPassword=android
+          ./gradlew assembleRelease \
+            -PMYAPP_UPLOAD_STORE_FILE=app/my-release-key.jks \
+            -PMYAPP_UPLOAD_KEY_ALIAS=my-key-alias \
+            -PMYAPP_UPLOAD_STORE_PASSWORD=android \
+            -PMYAPP_UPLOAD_KEY_PASSWORD=android
 
       - name: Get package version
         run: echo "PACKAGE_VERSION=$(node -p 'require("./package.json").version')" >> $GITHUB_ENV
