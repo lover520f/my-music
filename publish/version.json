@@ -1,7 +1,11 @@
 {
-  "version": "1.0.0",
-  "desc": "魔音 App 首发版本",
+  "version": "1.0.1",
+  "desc": "魔音 App - 修改包名为 com.my.music.moblie",
   "history": [
+    {
+      "version": "1.0.1",
+      "desc": "修改包名为 com.my.music.moblie"
+    },
     {
       "version": "1.0.0",
       "desc": "魔音 App 首发版本，基于 lx-netease-music-mobile，包含下载、网易登录等所有新功能"
