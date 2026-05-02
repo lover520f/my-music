@@ -12,6 +12,7 @@ import {filterFileName, sizeFormate} from "@/utils";
 import { getPicUrl } from '@/core/music/online'
 import DownloadTask = LX.Download.DownloadTask
 import wySdk from '@/utils/musicSdk/wy'
+import { validateDownloadedFile, estimateExpectedFileSize } from '@/utils/musicSdk/qualityValidator';
 
 const taskQueue: DownloadTask[] = [];
 let isProcessing = false;
@@ -107,6 +108,29 @@ const startDownload = async (task: DownloadTask) => {
 
     await downloadTask;
     console.log('下载完成:', task.fileName);
+    
+    // 验证下载的音质
+    const songDuration = task.musicInfo.interval 
+      ? parseInt(task.musicInfo.interval.split(':')[0]) * 60 + parseInt(task.musicInfo.interval.split(':')[1])
+      : 0;
+    
+    const validation = await validateDownloadedFile(
+      task.filePath,
+      task.quality,
+      getFileExtension(task.filePath),
+      songDuration
+    );
+    
+    if (!validation.isValid && validation.warning) {
+      console.warn(`[Download] 音质验证失败: ${validation.warning}`);
+      toast(`警告: ${validation.warning}`, 'long');
+      
+      // 如果实际音质与预期严重不符，可以考虑重新下载或提示用户
+      // 这里先记录日志，后续可以根据需要添加自动重试逻辑
+    } else if (validation.actualQuality) {
+      console.log(`[Download] 音质验证通过: ${validation.actualQuality.type} (${(validation.actualQuality.size / 1024 / 1024).toFixed(2)} MB)`);
+    }
+    
     await handleMetadata(task, task.filePath);
     try {
       await RNFetchBlob.fs.scanFile([{ path: task.filePath }]);
@@ -126,6 +150,34 @@ const startDownload = async (task: DownloadTask) => {
 
 const handleMetadata = async (task: DownloadTask, filePath: string) => {
   console.log('开始处理元数据:', filePath);
+  
+  const downloadDir = settingState.setting['download.path'] || (RNFetchBlob.fs.dirs.MusicDir + '/LX-N Music');
+  
+  // 先获取封面并保存（如果需要）
+  let picPath: string | null = null;
+  if (settingState.setting['download.writePicture']) {
+    try {
+      const picUrl = await getPicUrl({ musicInfo: task.musicInfo });
+      const extension = getFileExtensionFromUrl(picUrl);
+      picPath = `${downloadDir}/temp_cover_${Date.now()}.${extension}`;
+      await RNFetchBlob.config({ path: picPath }).fetch('GET', picUrl);
+    } catch (e) {
+      console.log('获取封面失败:', e);
+      picPath = null;
+    }
+  }
+  
+  // 准备歌词内容（如果需要）
+  let lyrics: any = null;
+  if (settingState.setting['download.writeLyric'] || settingState.setting['download.writeEmbedLyric']) {
+    try {
+      lyrics = await getLyricInfo({ musicInfo: task.musicInfo as LX.Music.MusicInfoOnline });
+    } catch (e) {
+      console.log('获取歌词失败:', e);
+      lyrics = null;
+    }
+  }
+  
   // 写入标签
   if (settingState.setting['download.writeMetadata']) {
     try {
@@ -137,51 +189,62 @@ const handleMetadata = async (task: DownloadTask, filePath: string) => {
         name: title,
         singer: task.musicInfo.singer,
         albumName: task.musicInfo.meta.albumName,
+        // 如果有封面，也一并写入
+        ...(picPath ? { picturePath: picPath } : {}),
       }, true);
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, tags: 'success' } });
     } catch (e) {
+      console.log('标签信息写入失败:', e);
       toast('标签信息写入失败', 'short');
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, tags: 'fail' } });
     }
-  }
-
-  const downloadDir = settingState.setting['download.path'] || (RNFetchBlob.fs.dirs.MusicDir + '/LX-N Music')
-  // 写入封面
-  if (settingState.setting['download.writePicture']) {
+  } else if (picPath) {
+    // 如果没有写入标签但有封面，单独写入封面
     try {
-      const picUrl = await getPicUrl({ musicInfo: task.musicInfo });
-      const extension = getFileExtensionFromUrl(picUrl)
-      const picPath = `${downloadDir}/temp.${extension}`
-      await RNFetchBlob.config({ path: picPath }).fetch('GET', picUrl);
       await writePic(filePath, picPath);
-      await unlink(picPath)
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, cover: 'success' } });
     } catch (e) {
-      console.log(e)
-      toast('封面写入失败', 'short');
+      console.log('封面写入失败:', e);
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, cover: 'fail' } });
     }
   }
-
-  // 写入歌词
-  if (settingState.setting['download.writeLyric'] || settingState.setting['download.writeEmbedLyric']) {
+  
+  // 写入内嵌歌词
+  if (settingState.setting['download.writeEmbedLyric'] && lyrics) {
     try {
-      const lyrics = await getLyricInfo({ musicInfo: task.musicInfo as LX.Music.MusicInfoOnline });
-      const baseFilePath = filePath.substring(0, filePath.lastIndexOf('.'));
       const romaLyric = settingState.setting['download.writeRomaLyric'] ? lyrics.rlyric : null;
-
-      if (settingState.setting['download.writeEmbedLyric']) {
-        const embedLyricContent = mergeLyrics(lyrics.lyric, lyrics.tlyric, romaLyric);
-        if (embedLyricContent) await writeLyric(filePath, embedLyricContent);
+      const embedLyricContent = mergeLyrics(lyrics.lyric, lyrics.tlyric, romaLyric);
+      if (embedLyricContent) {
+        await writeLyric(filePath, embedLyricContent);
       }
-      if (settingState.setting['download.writeLyric']) {
-        const finalLyricContent = mergeLyrics(lyrics.lyric, lyrics.tlyric, romaLyric);
-        if (finalLyricContent) await writeFile(`${baseFilePath}.lrc`, finalLyricContent);
+    } catch (e) {
+      console.log('内嵌歌词写入失败:', e);
+    }
+  }
+  
+  // 写入独立歌词文件
+  if (settingState.setting['download.writeLyric'] && lyrics) {
+    try {
+      const romaLyric = settingState.setting['download.writeRomaLyric'] ? lyrics.rlyric : null;
+      const finalLyricContent = mergeLyrics(lyrics.lyric, lyrics.tlyric, romaLyric);
+      if (finalLyricContent) {
+        const baseFilePath = filePath.substring(0, filePath.lastIndexOf('.'));
+        await writeFile(`${baseFilePath}.lrc`, finalLyricContent);
       }
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, lyric: 'success' } });
     } catch (e) {
+      console.log('歌词文件写入失败:', e);
       toast('歌词写入失败', 'short');
       downloadActions.updateTask(task.id, { metadataStatus: { ...task.metadataStatus, lyric: 'fail' } });
+    }
+  }
+  
+  // 清理临时封面文件
+  if (picPath) {
+    try {
+      await unlink(picPath);
+    } catch (e) {
+      console.log('清理临时封面失败:', e);
     }
   }
 };
