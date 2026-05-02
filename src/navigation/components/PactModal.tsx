@@ -152,7 +152,7 @@ const Footer = ({ componentId }: { componentId: string }) => {
   const theme = useTheme()
   const isAgreePact = useSettingValue('common.isAgreePact')
   // const checkUpdate = useDispatch('common', 'checkUpdate')
-  const [time, setTime] = useState(5)
+  const [time, setTime] = useState(3)
 
   const handleRejct = () => {
     exitApp()
