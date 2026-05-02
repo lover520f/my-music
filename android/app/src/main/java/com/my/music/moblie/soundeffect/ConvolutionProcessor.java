@@ -13,6 +13,8 @@ import java.nio.ByteOrder;
 
 public class ConvolutionProcessor {
     private static final int BLOCK_SIZE = 512;
+    private static final int FFT_SIZE = 2048;
+    private static final int HOP_SIZE = 512;
 
     private Context context;
     private float dryGain = 1.0f;
@@ -23,8 +25,23 @@ public class ConvolutionProcessor {
     private float currentMainGain = 10.0f;
     private float currentSendGain = 0.0f;
 
+    // 真实卷积混响相关
+    private float[] impulseResponse;
+    private float[] inputBuffer;
+    private float[] outputBuffer;
+    private float[] overlapBuffer;
+    private int bufferIndex = 0;
+    private boolean useNativeReverb = true;
+
     public ConvolutionProcessor(Context context) {
         this.context = context;
+        initBuffers();
+    }
+
+    private void initBuffers() {
+        inputBuffer = new float[FFT_SIZE];
+        outputBuffer = new float[FFT_SIZE];
+        overlapBuffer = new float[FFT_SIZE];
     }
 
     public void updateConfig(SoundEffectConfig config) {
@@ -33,16 +50,37 @@ public class ConvolutionProcessor {
         this.wetGain = config.convolutionSendGain / 10.0f;
         this.currentMainGain = config.convolutionMainGain;
         this.currentSendGain = config.convolutionSendGain;
+
+        if (enabled && !config.convolutionFileName.isEmpty()) {
+            loadImpulseResponse(config.convolutionFileName);
+            useNativeReverb = false;
+        } else {
+            useNativeReverb = true;
+        }
+    }
+
+    private void loadImpulseResponse(String fileName) {
+        try {
+            String fullPath = "medias/filters/" + fileName;
+            impulseResponse = WavLoader.loadWavFromAssets(context, fullPath);
+            if (impulseResponse == null || impulseResponse.length == 0) {
+                useNativeReverb = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            useNativeReverb = true;
+        }
     }
 
     public void setAudioSessionId(int audioSessionId) {
         release();
         
         try {
-            environmentalReverb = new EnvironmentalReverb(0, audioSessionId);
-            
-            applyReverbSettings();
-            environmentalReverb.setEnabled(enabled);
+            if (useNativeReverb || impulseResponse == null) {
+                environmentalReverb = new EnvironmentalReverb(0, audioSessionId);
+                applyReverbSettings();
+                environmentalReverb.setEnabled(enabled);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             environmentalReverb = null;
@@ -102,8 +140,62 @@ public class ConvolutionProcessor {
             return;
         }
 
-        for (int i = 0; i < samples.length; i++) {
-            samples[i] *= dryGain;
+        // 使用原生 EnvironmentalReverb
+        if (useNativeReverb || environmentalReverb != null) {
+            for (int i = 0; i < samples.length; i++) {
+                samples[i] *= dryGain;
+            }
+        } 
+        // 使用真实卷积混响
+        else if (impulseResponse != null && impulseResponse.length > 0) {
+            processWithConvolution(samples, channels);
+        }
+    }
+
+    private void processWithConvolution(float[] samples, int channels) {
+        int numFrames = samples.length / channels;
+        
+        for (int frame = 0; frame < numFrames; frame++) {
+            // 填充输入缓冲区
+            inputBuffer[bufferIndex] = samples[frame * channels];
+            bufferIndex++;
+            
+            // 当缓冲区满时进行卷积
+            if (bufferIndex >= FFT_SIZE) {
+                performOverlapAddConvolution();
+                bufferIndex = FFT_SIZE / 2;
+                
+                // 移动后半部分到前面
+                System.arraycopy(inputBuffer, FFT_SIZE / 2, inputBuffer, 0, FFT_SIZE / 2);
+            }
+            
+            // 输出（使用 overlap-add）
+            int outputIndex = frame % (FFT_SIZE / 2);
+            if (outputIndex < outputBuffer.length) {
+                float out = outputBuffer[outputIndex] + (bufferIndex > 0 ? inputBuffer[bufferIndex - 1] : 0);
+                samples[frame * channels] = out * dryGain + out * wetGain;
+                if (channels > 1) {
+                    samples[frame * channels + 1] = out * dryGain + out * wetGain;
+                }
+            }
+        }
+    }
+
+    private void performOverlapAddConvolution() {
+        // 清空输出缓冲区
+        for (int i = 0; i < outputBuffer.length; i++) {
+            outputBuffer[i] = 0;
+        }
+        
+        // 简单的 overlap-add 卷积
+        int irLength = Math.min(impulseResponse.length, FFT_SIZE);
+        for (int i = 0; i < FFT_SIZE; i++) {
+            if (i < inputBuffer.length) {
+                float inputSample = inputBuffer[i];
+                for (int j = 0; j < irLength && i + j < FFT_SIZE; j++) {
+                    outputBuffer[i + j] += inputSample * impulseResponse[j] * 0.1f;
+                }
+            }
         }
     }
 
