@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   Android:
@@ -24,39 +25,39 @@ jobs:
         shell: bash
         run: |
           cd android
-          echo ${{ secrets.MYAPP_KEYSTORE_BASE64 }} | base64 --decode > app/${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
           chmod +x ./gradlew
-          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.MYAPP_UPLOAD_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.MYAPP_UPLOAD_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.MYAPP_UPLOAD_STORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.MYAPP_UPLOAD_KEY_PASSWORD }}'
-          rm -f app/${{ secrets.MYAPP_UPLOAD_STORE_FILE }}
+          ./gradlew assembleRelease
+          mv app/build/outputs/apk/release/*.apk app/build/outputs/apk/release/my-music-temp.apk || true
 
-      # Push tag to GitHub if package.json version's tag is not tagged
       - name: Get package version
-        run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV
+        run: echo "PACKAGE_VERSION=$(node -p 'require("./package.json").version')" >> $GITHUB_ENV
 
-      - name: Create git tag
-        uses: pkgdeps/git-tag-action@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_repo: ${{ github.repository }}
-          version: ${{ env.PACKAGE_VERSION }}
-          git_commit_sha: ${{ github.sha }}
-          git_tag_prefix: 'v'
+      - name: List APK files
+        run: ls -lh android/app/build/outputs/apk/release/
 
-      - name: Generate file MD5
+      - name: Rename APK files
         run: |
-          cd android/app/build/outputs/apk/release
-          md5sum *.apk
+          cd android/app/build/outputs/apk/release/
+          for apk in *.apk; do
+            if [ "$apk" != "my-music-v${PACKAGE_VERSION}-universal.apk" ]; then
+              newname=$(echo "$apk" | sed "s/lx-netease-music-mobile/my-music/g")
+              mv "$apk" "$newname" 2>/dev/null || true
+            fi
+          done
+          ls -lh
 
       - name: Upload Artifact
-        uses: ./.github/actions/upload-artifact
-        env:
-          PACKAGE_VERSION: ${{ env.PACKAGE_VERSION }}
-
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-music-apk
+          path: android/app/build/outputs/apk/release/my-music*.apk
 
   Release:
     name: Release
-    runs-on: ubuntu-latest
     needs: [Android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
@@ -64,34 +65,34 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
+          name: my-music-apk
           path: ./artifacts
-          merge-multiple: true
-
-      - name: Generate release body
-        run: |
-          awk 'BEGIN{RS="---"}{if(NR==1)print $0}' ./publish/changeLog.md > RELEASE_NOTES.md
-          echo -e '\n### File MD5\n```' >> RELEASE_NOTES.md
-          cd artifacts
-          md5sum *.apk >> ../RELEASE_NOTES.md
-          cd ..
-          echo -e '```\n' >> RELEASE_NOTES.md
-          echo -e '\n[软件安装包说明](https://lyswhut.github.io/lx-music-doc/download#%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E5%8C%85%E8%AF%B4%E6%98%8E)\n' >> RELEASE_NOTES.md
 
       - name: Get package version
-        run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV
+        run: echo "PACKAGE_VERSION=$(node -p 'require("./package.json").version')" >> $GITHUB_ENV
 
-      - name: Release
+      - name: List files
+        run: ls -lh artifacts/
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: RELEASE_NOTES.md
-          prerelease: false
-          draft: false
           tag_name: v${{ env.PACKAGE_VERSION }}
+          name: 魔音 v${{ env.PACKAGE_VERSION }}
+          body: |
+            魔音 App 发布版本 v${{ env.PACKAGE_VERSION }}
+            
+            基于 lx-netease-music-mobile，包含下载、网易登录等所有新功能。
+            
+            ## 下载说明
+            - universal.apk: 通用版（推荐）
+            - arm64-v8a: 适用于64位 ARM 设备
+            - armeabi-v7a: 适用于32位 ARM 设备
+            - x86_64: 适用于64位 x86 设备
+            - x86: 适用于32位 x86 设备
+          draft: false
+          prerelease: false
           files: |
-            artifacts/lx-netease-music-mobile-v${{ env.PACKAGE_VERSION }}-arm64-v8a.apk
-            artifacts/lx-netease-music-mobile-v${{ env.PACKAGE_VERSION }}-armeabi-v7a.apk
-            artifacts/lx-netease-music-mobile-v${{ env.PACKAGE_VERSION }}-x86_64.apk
-            artifacts/lx-netease-music-mobile-v${{ env.PACKAGE_VERSION }}-x86.apk
-            artifacts/lx-netease-music-mobile-v${{ env.PACKAGE_VERSION }}-universal.apk
+            artifacts/my-music*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
