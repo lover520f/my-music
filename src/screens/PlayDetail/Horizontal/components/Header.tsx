@@ -11,7 +11,10 @@ import commonState from '@/store/common/state'
 import CommentBtn from './CommentBtn'
 import Btn from './Btn'
 import SettingPopup, { type SettingPopupType } from '../../components/SettingPopup'
+import SoundEffectPopup, { type SoundEffectPopupType } from '../../components/SoundEffectPopup'
 import DesktopLyricBtn from './DesktopLyricBtn'
+import { useSetting } from '@/store/setting/hook'
+import { isSoundEffectActive } from '@/plugins/player/soundEffect'
 
 export const HEADER_HEIGHT = scaleSizeH(_HEADER_HEIGHT)
 
@@ -91,11 +94,17 @@ const Title = () => {
 
 export default memo(() => {
   const popupRef = useRef<SettingPopupType>(null)
+  const soundEffectPopupRef = useRef<SoundEffectPopupType>(null)
+  const theme = useTheme()
+  const setting = useSetting()
   const back = () => {
     void pop(commonState.componentIds[commonState.componentIds.length - 1]?.id!)
   }
   const showSetting = () => {
     popupRef.current?.show()
+  }
+  const showSoundEffect = () => {
+    soundEffectPopupRef.current?.show()
   }
   return (
     <View style={{ height: HEADER_HEIGHT }} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_header}>
@@ -106,8 +115,10 @@ export default memo(() => {
         <Title />
         <DesktopLyricBtn />
         <CommentBtn />
-        <Btn icon="slider" onPress={showSetting} />
+        <Btn icon="slider" color={isSoundEffectActive(setting) ? theme['c-primary-font-active'] : undefined} onPress={showSoundEffect} />
+        <Btn icon="setting" size={18} onPress={showSetting} />
       </View>
+      <SoundEffectPopup ref={soundEffectPopupRef} position="bottom" layoutMode="split" />
       <SettingPopup ref={popupRef} position="left" direction="horizontal" />
     </View>
   )

@@ -5,6 +5,47 @@ declare global {
   namespace LX {
     type AddMusicLocationType = 'top' | 'bottom'
     type DownloadFileNameFormat = '歌名 - 歌手' | '歌手 - 歌名' | '歌名'
+    type SoundEffectPresetId =
+      | 'none'
+      | 'pop'
+      | 'dance'
+      | 'rock'
+      | 'classical'
+      | 'vocal'
+      | 'slow'
+      | 'electronic'
+      | 'subwoofer'
+      | 'soft'
+      | 'custom'
+      | 'slowSong'
+      | 'bass'
+      | 'speech'
+      | 'deep'
+      | 'loudness'
+
+    namespace SoundEffect {
+      interface EQPreset {
+        id: string
+        name: string
+        hz31: number
+        hz62: number
+        hz125: number
+        hz250: number
+        hz500: number
+        hz1000: number
+        hz2000: number
+        hz4000: number
+        hz8000: number
+        hz16000: number
+      }
+      interface ConvolutionPreset {
+        id: string
+        name: string
+        source: string
+        mainGain: number
+        sendGain: number
+      }
+    }
 
     interface AppSetting {
       version: string
@@ -211,6 +252,101 @@ declare global {
        * 是否启用蓝牙歌词
        */
       'player.isShowBluetoothLyric': boolean
+
+      /**
+       * 是否启用音效
+       */
+      'player.soundEffect.enabled': boolean
+
+      /**
+       * 当前音效预设
+       */
+      'player.soundEffect.preset': SoundEffectPresetId
+
+      /**
+       * 31Hz EQ 增益
+       */
+      'player.soundEffect.eq.31': number
+
+      /**
+       * 62Hz EQ 增益
+       */
+      'player.soundEffect.eq.62': number
+
+      /**
+       * 125Hz EQ 增益
+       */
+      'player.soundEffect.eq.125': number
+
+      /**
+       * 250Hz EQ 增益
+       */
+      'player.soundEffect.eq.250': number
+
+      /**
+       * 500Hz EQ 增益
+       */
+      'player.soundEffect.eq.500': number
+
+      /**
+       * 1kHz EQ 增益
+       */
+      'player.soundEffect.eq.1000': number
+
+      /**
+       * 2kHz EQ 增益
+       */
+      'player.soundEffect.eq.2000': number
+
+      /**
+       * 4kHz EQ 增益
+       */
+      'player.soundEffect.eq.4000': number
+
+      /**
+       * 8kHz EQ 增益
+       */
+      'player.soundEffect.eq.8000': number
+
+      /**
+       * 16kHz EQ 增益
+       */
+      'player.soundEffect.eq.16000': number
+
+      /**
+       * 环境音效文件名
+       */
+      'player.soundEffect.convolution.fileName': string
+
+      /**
+       * 环境音效原始输出增益
+       */
+      'player.soundEffect.convolution.mainGain': number
+
+      /**
+       * 环境音效输出增益
+       */
+      'player.soundEffect.convolution.sendGain': number
+
+      /**
+       * 3D 立体环绕是否启用
+       */
+      'player.soundEffect.panner.enable': boolean
+
+      /**
+       * 3D 立体环绕声音距离
+       */
+      'player.soundEffect.panner.soundR': number
+
+      /**
+       * 3D 立体环绕速度
+       */
+      'player.soundEffect.panner.speed': number
+
+      /**
+       * 升降声调
+       */
+      'player.soundEffect.pitchShifter.playbackRate': number
 
       /**
        * 播放详情页-歌词对齐方式

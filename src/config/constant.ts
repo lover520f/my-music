@@ -87,6 +87,9 @@ export const storageDataPrefix = {
   downloadList: '@download_list',
   wyUidCache: '@wy_uid_cache__',
   similarSongsCache: '@similar_songs_cache',
+
+  soundEffectEQPresetList: '@sound_effect_eq_preset_list',
+  soundEffectConvolutionPresetList: '@sound_effect_convolution_preset_list',
 } as const
 
 // v0.x.x 版本的 data keys
