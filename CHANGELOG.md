@@ -9,17 +9,17 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [1.0.3](https://github.com/souvenp/lx-netease-music-mobile/compare/v1.0.2...v1.0.3) - 2026-05-02
 
 ### 新增
-- 音质验证器：自动验证下载的音乐文件是否符合预期音质
-- 完善的元数据处理流程：确保标签、封面、歌词能够正确嵌入
+- Android音效模块：使用Android AudioEffect原生API实现音效功能
+- 10段均衡器、低音增强、3D环绕声、环境混响功能
+- 音质预设管理功能
+- 完善的元数据处理流程：优化标签、封面、歌词嵌入逻辑
 
 ### 修复
 - 修复评论区返回键问题
-- 优化下载音质验证逻辑
-- 改进歌词和封面嵌入流程
+- 优化元数据写入流程，确保标签和封面能正确嵌入
 
 ### 优化
-- 优化音效模块架构
-- 添加详细的音质验证日志
+- 完善Android音效模块架构
 
 ## [1.0.2](https://github.com/souvenp/lx-netease-music-mobile/compare/v1.0.1...v1.0.2) - 2026-05-02
 

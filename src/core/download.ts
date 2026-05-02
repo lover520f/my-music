@@ -11,8 +11,7 @@ import downloadActions from '@/store/download/action';
 import {filterFileName, sizeFormate} from "@/utils";
 import { getPicUrl } from '@/core/music/online'
 import DownloadTask = LX.Download.DownloadTask
-import wySdk from '@/utils/musicSdk/wy'
-import { validateDownloadedFile, estimateExpectedFileSize } from '@/utils/musicSdk/qualityValidator';
+import wySdk from '@/utils/musicSdk/wy';
 
 const taskQueue: DownloadTask[] = [];
 let isProcessing = false;
@@ -108,29 +107,6 @@ const startDownload = async (task: DownloadTask) => {
 
     await downloadTask;
     console.log('下载完成:', task.fileName);
-    
-    // 验证下载的音质
-    const songDuration = task.musicInfo.interval 
-      ? parseInt(task.musicInfo.interval.split(':')[0]) * 60 + parseInt(task.musicInfo.interval.split(':')[1])
-      : 0;
-    
-    const validation = await validateDownloadedFile(
-      task.filePath,
-      task.quality,
-      getFileExtension(task.filePath),
-      songDuration
-    );
-    
-    if (!validation.isValid && validation.warning) {
-      console.warn(`[Download] 音质验证失败: ${validation.warning}`);
-      toast(`警告: ${validation.warning}`, 'long');
-      
-      // 如果实际音质与预期严重不符，可以考虑重新下载或提示用户
-      // 这里先记录日志，后续可以根据需要添加自动重试逻辑
-    } else if (validation.actualQuality) {
-      console.log(`[Download] 音质验证通过: ${validation.actualQuality.type} (${(validation.actualQuality.size / 1024 / 1024).toFixed(2)} MB)`);
-    }
-    
     await handleMetadata(task, task.filePath);
     try {
       await RNFetchBlob.fs.scanFile([{ path: task.filePath }]);
