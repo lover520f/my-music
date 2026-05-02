@@ -16,9 +16,9 @@ buildscript {
         excludeAppGlideModule = true
     }
     repositories {
+        maven { url 'https://mirrors.cloud.tencent.com/gradle/' }
         maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
         google()
         mavenCentral()
     }
@@ -31,9 +31,9 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url 'https://mirrors.cloud.tencent.com/gradle/' }
         maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
         google()
         mavenCentral()
     }
