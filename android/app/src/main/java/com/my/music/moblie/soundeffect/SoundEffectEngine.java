@@ -20,6 +20,15 @@ public class SoundEffectEngine {
 
     public SoundEffectEngine(Context context) {
         this.context = context;
+        initializeProcessors();
+    }
+
+    private void initializeProcessors() {
+        equalizer = new EqualizerProcessor();
+        convolution = new ConvolutionProcessor(context);
+        panner = new PannerProcessor();
+        pitch = new PitchProcessor();
+        dynamics = new DynamicsProcessor();
     }
 
     public void updateConfig(ReadableMap configMap) {
@@ -39,6 +48,15 @@ public class SoundEffectEngine {
         }
         if (pitch != null) {
             pitch.updateConfig(newConfig);
+        }
+    }
+
+    public void setAudioSessionId(int audioSessionId) {
+        if (equalizer != null) {
+            // Android Equalizer API 不需要手动设置 session ID
+        }
+        if (convolution != null) {
+            convolution.setAudioSessionId(audioSessionId);
         }
     }
 
@@ -134,5 +152,11 @@ public class SoundEffectEngine {
         }
 
         return processed;
+    }
+
+    public void release() {
+        if (convolution != null) {
+            convolution.release();
+        }
     }
 }

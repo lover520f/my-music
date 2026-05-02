@@ -1,7 +1,7 @@
 {
   "name": "my-music",
-  "version": "1.0.2",
-  "versionCode": 3,
+  "version": "1.0.3",
+  "versionCode": 4,
   "private": true,
   "scripts": {
     "dev": "react-native run-android --active-arch-only",
