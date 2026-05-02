@@ -20,7 +20,8 @@ export default memo(({ musicInfo }: { musicInfo: LX.Music.MusicInfo }) => {
   const statusBarHeight = useStatusbarHeight()
 
   const back = () => {
-    void pop(commonState.componentIds.comment!)
+    const commentComponent = commonState.componentIds.find(item => item.name === COMPONENT_IDS.comment)
+    void pop(commentComponent?.id!)
   }
 
   return (
