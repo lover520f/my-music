@@ -3,8 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 Project versioning adheres to [Semantic Versioning](http://semver.org/).
-Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
+Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
+
+## [1.0.2](https://github.com/souvenp/lx-netease-music-mobile/compare/v1.0.1...v1.0.2) - 2026-05-02
+
+### 新增
+- 音效功能：10段均衡器、卷积混响、3D环绕声、变调器
+- 音效预设管理功能
+
+### 优化
+- 完善音频播放器界面
 
 ## [1.7.0](https://github.com/lyswhut/lx-music-mobile/compare/v1.6.0...v1.7.0) - 2025-01-27
 
