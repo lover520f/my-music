@@ -2,6 +2,9 @@
 
 <h1 align="center">LX-N Music 移动版</h1>
 
+<!-- 构建触发标记 -->
+
+
 <p align="center">
   <a href="https://github.com/souvenp/lx-netease-music-mobile/releases"><img src="https://img.shields.io/github/release/souvenp/lx-netease-music-mobile" alt="Release version"></a>
   <a href="https://github.com/souvenp/lx-netease-music-mobile/actions/workflows/release.yml"><img src="https://github.com/souvenp/lx-netease-music-mobile/workflows/Build/badge.svg" alt="Build status"></a>
