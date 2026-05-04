@@ -1,22 +1,14 @@
 {
   "version": "1.0.3",
-  "desc": "魔音 App - 完善音效功能，与播放器集成",
+  "desc": "魔音 App 1.0.3 版本",
   "history": [
-    {
-      "version": "1.0.3",
-      "desc": "完善音效功能，与播放器集成"
-    },
-    {
-      "version": "1.0.2",
-      "desc": "新增音效功能（均衡器、混响、3D环绕、变调）"
-    },
-    {
-      "version": "1.0.1",
-      "desc": "修改包名为 com.my.music.moblie"
-    },
     {
       "version": "1.0.0",
       "desc": "魔音 App 首发版本，基于 lx-netease-music-mobile，包含下载、网易登录等所有新功能"
+    },
+    {
+      "version": "1.0.3",
+      "desc": "魔音 App 1.0.3 版本"
     }
   ]
 }
