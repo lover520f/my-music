@@ -11,3 +11,13 @@ export async function updateNativeSoundEffectConfig(config: any) {
     console.error('Failed to update sound effect config:', error)
   }
 }
+
+export async function setAudioSessionId(sessionId: number) {
+  try {
+    if (NativeModules.LXSoundEffect) {
+      await NativeModules.LXSoundEffect.setAudioSessionId(sessionId)
+    }
+  } catch (error) {
+    console.error('Failed to set audio session ID:', error)
+  }
+}

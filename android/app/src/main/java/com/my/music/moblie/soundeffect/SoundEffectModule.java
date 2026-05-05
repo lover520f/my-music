@@ -1,14 +1,11 @@
 package com.my.music.moblie.soundeffect;
 
 import androidx.annotation.NonNull;
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import java.util.HashMap;
-import java.util.Map;
 
 public class SoundEffectModule extends ReactContextBaseJavaModule {
     private static final String NAME = "LXSoundEffect";
@@ -33,5 +30,16 @@ public class SoundEffectModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void isSupported(Promise promise) {
         promise.resolve(true);
+    }
+
+    @ReactMethod
+    public void setAudioSessionId(int sessionId, Promise promise) {
+        engine.setAudioSessionId(sessionId);
+        promise.resolve(true);
+    }
+
+    @ReactMethod
+    public void release() {
+        engine.release();
     }
 }
