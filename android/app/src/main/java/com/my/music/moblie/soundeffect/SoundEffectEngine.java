@@ -7,8 +7,6 @@ import android.media.audiofx.Virtualizer;
 import android.util.Log;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SoundEffectEngine {
     private static final String TAG = "SoundEffectEngine";
@@ -24,15 +22,6 @@ public class SoundEffectEngine {
     
     // 当前音频会话 ID（将在播放时设置）
     private int audioSessionId = 0;
-    
-    // 预设混响名称映射
-    private static final String[] PRESET_NAMES = {
-        "none",
-        "small",
-        "medium",
-        "large",
-        "hall"
-    };
 
     public SoundEffectEngine(Context context) {
         this.context = context;
