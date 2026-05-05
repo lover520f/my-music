@@ -4,6 +4,7 @@ import { setStatusText, setIsPlay } from '@/core/player/playStatus'
 // import { resetPlayerMusicInfo } from '@/core/player/playInfo'
 import { setStop, updateOptions } from '@/plugins/player'
 import { delayUpdateMusicInfo } from '@/plugins/player/playList'
+import { soundEffectController } from '@/plugins/player/soundEffect'
 import playerState from '@/store/player/state'
 import settingState from '@/store/setting/state'
 
@@ -58,6 +59,10 @@ export default async (setting: LX.AppSetting) => {
         }
       })
     }
+    // Apply sound effect configuration when sound effect settings change
+    if (keys.some(key => key.startsWith('player.soundEffect'))) {
+      void soundEffectController.applyCurrentConfig()
+    }
   }
 
   global.app_event.on('play', setPlayStatus)
@@ -67,4 +72,9 @@ export default async (setting: LX.AppSetting) => {
   global.app_event.on('playerEnded', handleEnded)
   global.app_event.on('picUpdated', updatePic)
   global.state_event.on('configUpdated', handleConfigUpdated)
+
+  // Apply initial sound effect configuration
+  setTimeout(() => {
+    void soundEffectController.applyCurrentConfig()
+  }, 500)
 }

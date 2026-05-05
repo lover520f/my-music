@@ -541,6 +541,7 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
 
   const handleReset = () => {
     updateSetting(createPresetSettingPatch('none'))
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handlePresetPress = (nextPresetId: Exclude<LX.SoundEffectPresetId, 'custom'>) => {
@@ -549,6 +550,7 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
     const nextPreview = createEqualizerGainsRecord(preset.gains)
     setPreviewGains(nextPreview)
     updateSetting(createPresetSettingPatch(nextPresetId))
+    void soundEffectController.applyCurrentEqualizerConfig(nextPreview)
   }
 
   const handleValueChange = (frequency: typeof equalizerFrequencies[number], value: number) => {
@@ -573,18 +575,22 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
       return
     }
     updateSetting(createConvolutionSettingPatch(source))
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleUpdateConvolutionMainGain = (value: number) => {
     updateSetting({ 'player.soundEffect.convolution.mainGain': Math.round(value) })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleUpdateConvolutionSendGain = (value: number) => {
     updateSetting({ 'player.soundEffect.convolution.sendGain': Math.round(value) })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleResetPitch = () => {
     updateSetting({ 'player.soundEffect.pitchShifter.playbackRate': 1 })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleShowPitchTip = () => {
@@ -596,6 +602,7 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
 
   const handleUpdatePitch = (value: number) => {
     updateSetting({ 'player.soundEffect.pitchShifter.playbackRate': value })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleShowSaveEqPreset = () => {
@@ -639,6 +646,7 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
     ]
     setPreviewGains(createEqualizerGainsRecord(gains))
     updateSetting(createCustomGainsSettingPatch(gains))
+    void soundEffectController.applyCurrentEqualizerConfig(createEqualizerGainsRecord(gains))
   }
 
   const handleRemoveEqPreset = async(preset: LX.SoundEffect.EQPreset) => {
@@ -689,14 +697,17 @@ export default memo(({ showTip = true, layoutMode = 'split' }: {
 
   const handleToggleSurround = () => {
     updateSetting({ 'player.soundEffect.panner.enable': !surroundEnabled })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleUpdateSurroundSpeed = (value: number) => {
     updateSetting({ 'player.soundEffect.panner.speed': Math.round(value) })
+    void soundEffectController.applyCurrentConfig()
   }
 
   const handleUpdateSurroundDistance = (value: number) => {
     updateSetting({ 'player.soundEffect.panner.soundR': Math.round(value) })
+    void soundEffectController.applyCurrentConfig()
   }
 
   if (layoutMode == 'stacked') {
