@@ -182,47 +182,6 @@ public class SoundEffectEngine {
         return isActive;
     }
 
-    // 音频处理方法（将在音频播放器中调用）
-    public float[] processAudio(float[] samples, int channels) {
-        if (!isActive || samples == null || samples.length == 0) {
-            return samples;
-        }
-
-        float[] processed = samples.clone();
-
-        // 1. 均衡器处理
-        if (config.hasEqualizer() && equalizer != null) {
-            equalizer.process(processed, channels);
-        }
-
-        // 2. 变调处理
-        if (config.hasPitchShift() && pitch != null) {
-            pitch.process(processed, channels);
-        }
-
-        // 3. 混响处理
-        if (config.hasConvolution() && convolution != null) {
-            convolution.process(processed, channels);
-        }
-
-        // 4. 动态处理器（限幅器）
-        if (dynamics != null) {
-            dynamics.process(processed, channels);
-        }
-
-        // 5. 3D环绕处理
-        if (config.hasPanner() && panner != null) {
-            panner.process(processed, channels);
-        }
-
-        // 限幅到 [-1, 1] 范围
-        for (int i = 0; i < processed.length; i++) {
-            processed[i] = Math.max(-1.0f, Math.min(1.0f, processed[i]));
-        }
-
-        return processed;
-    }
-
     public void release() {
         try {
             if (equalizer != null) {
