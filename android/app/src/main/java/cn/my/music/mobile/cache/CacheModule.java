@@ -7,9 +7,9 @@ import com.facebook.react.bridge.ReactMethod;
 
 import java.io.File;
 
-import static com.my.music.moblie.cache.Utils.clearCacheFolder;
-import static com.my.music.moblie.cache.Utils.getDirSize;
-import static com.my.music.moblie.cache.Utils.isMethodsCompat;
+import static cn.my.music.mobile.cache.Utils.clearCacheFolder;
+import static cn.my.music.mobile.cache.Utils.getDirSize;
+import static cn.my.music.mobile.cache.Utils.isMethodsCompat;
 
 // https://github.com/midas-gufei/react-native-clear-app-cache/tree/master/android/src/main/java/com/learnta/clear
 public class CacheModule extends ReactContextBaseJavaModule {

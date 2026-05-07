@@ -97,7 +97,7 @@ public class SoundEffectEngine {
                 short preset = PresetReverb.PRESET_NONE;
                 String fileName = config.convolutionFileName.toLowerCase();
                 
-                if (fileName.contains("hall")) preset = PresetReverb.PRESET_HALL;
+                if (fileName.contains("hall")) preset = PresetReverb.PRESET_LARGEHALL;
                 else if (fileName.contains("large")) preset = PresetReverb.PRESET_LARGEROOM;
                 else if (fileName.contains("medium")) preset = PresetReverb.PRESET_MEDIUMROOM;
                 else if (fileName.contains("small") || fileName.contains("telephone")) preset = PresetReverb.PRESET_SMALLROOM;

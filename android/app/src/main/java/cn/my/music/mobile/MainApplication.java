@@ -9,13 +9,13 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.reactnativenavigation.react.NavigationReactNativeHost;
 import java.util.List;
 
-import com.my.music.moblie.cache.CachePackage;
-import com.my.music.moblie.crypto.CryptoPackage;
-import com.my.music.moblie.lyric.LyricPackage;
-import com.my.music.moblie.soundeffect.SoundEffectPackage;
-import com.my.music.moblie.userApi.UserApiPackage;
-import com.my.music.moblie.utils.UtilsPackage;
-import com.my.music.moblie.widget.WidgetPackage;
+import cn.my.music.mobile.cache.CachePackage;
+import cn.my.music.mobile.crypto.CryptoPackage;
+import cn.my.music.mobile.lyric.LyricPackage;
+import cn.my.music.mobile.soundeffect.SoundEffectPackage;
+import cn.my.music.mobile.userApi.UserApiPackage;
+import cn.my.music.mobile.utils.UtilsPackage;
+import cn.my.music.mobile.widget.WidgetPackage;
 
 public class MainApplication extends NavigationApplication {
 

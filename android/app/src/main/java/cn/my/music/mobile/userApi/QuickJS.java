@@ -6,8 +6,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
-import com.my.music.moblie.crypto.AES;
-import com.my.music.moblie.crypto.RSA;
+import cn.my.music.mobile.crypto.AES;
+import cn.my.music.mobile.crypto.RSA;
 import com.facebook.react.bridge.ReactApplicationContext;
 
 import com.whl.quickjs.android.QuickJSLoader;
