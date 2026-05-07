@@ -1,7 +1,6 @@
 import { addPlayedList, clearPlayedList } from '@/core/player/playedList'
 import { pause, playNext } from '@/core/player/player'
 import { setStatusText, setIsPlay } from '@/core/player/playStatus'
-// import { resetPlayerMusicInfo } from '@/core/player/playInfo'
 import { setStop, updateOptions } from '@/plugins/player'
 import { delayUpdateMusicInfo } from '@/plugins/player/playList'
 import { soundEffectController } from '@/plugins/player/soundEffect'
@@ -19,17 +18,12 @@ export default async (setting: LX.AppSetting) => {
   }
 
   const handleEnded = () => {
-    // setTimeout(() => {
     if (global.lx.isPlayedStop) {
       setStatusText(global.i18n.t('player__end'))
       return
     }
-    // resetPlayerMusicInfo()
-    // global.app_event.stop()
-    // global.app_event.setProgress(0)
     setStatusText(global.i18n.t('player__end'))
     void playNext(true)
-    // })
   }
 
   const setStopStatus = () => {
@@ -44,6 +38,14 @@ export default async (setting: LX.AppSetting) => {
     }
   }
 
+  const handlePlayMusicInfoChanged = (playMusicInfo: typeof playerState.playMusicInfo) => {
+    console.log('[SoundEffect] Music changed, reapplying sound effect config')
+    // When music changes, reapply sound effect config to ensure effects work on new track
+    // Use session 0 as default, the native module will handle session-specific effects
+    void setAudioSessionId(0)
+    void soundEffectController.applyCurrentConfig()
+  }
+
   const handleConfigUpdated: typeof global.state_event.configUpdated = (keys, settings) => {
     if (keys.includes('player.togglePlayMethod')) {
       const newValue = settings['player.togglePlayMethod']
@@ -54,7 +56,6 @@ export default async (setting: LX.AppSetting) => {
     }
     if (keys.includes('desktopLyric.enable')) {
       void updateOptions(settings['desktopLyric.enable'] as boolean).then(() => {
-        // Force notification rebuild after updating options icon
         if (playerState.playMusicInfo.musicInfo) {
           delayUpdateMusicInfo(playerState.musicInfo, playerState.lastLyric)
         }
@@ -73,8 +74,10 @@ export default async (setting: LX.AppSetting) => {
   global.app_event.on('playerEnded', handleEnded)
   global.app_event.on('picUpdated', updatePic)
   global.state_event.on('configUpdated', handleConfigUpdated)
+  // Listen for music change to reapply sound effects
+  global.state_event.on('playMusicInfoChanged', handlePlayMusicInfoChanged)
 
-  // Initialize sound effect with global audio session (session 0)
+  // Initialize sound effect
   setTimeout(() => {
     void setAudioSessionId(0)
     void soundEffectController.applyCurrentConfig()

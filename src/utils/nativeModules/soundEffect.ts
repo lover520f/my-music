@@ -21,3 +21,15 @@ export async function setAudioSessionId(sessionId: number) {
     console.error('Failed to set audio session ID:', error)
   }
 }
+
+export async function getCurrentAudioSessionId(): Promise<number> {
+  try {
+    if (NativeModules.LXSoundEffect) {
+      return await NativeModules.LXSoundEffect.getCurrentAudioSessionId()
+    }
+    return 0
+  } catch (error) {
+    console.error('Failed to get audio session ID:', error)
+    return 0
+  }
+}

@@ -10,25 +10,24 @@ import com.facebook.react.bridge.ReadableMap;
 
 public class SoundEffectEngine {
     private static final String TAG = "SoundEffectEngine";
-    
+
     private final Context context;
     private SoundEffectConfig config = new SoundEffectConfig();
     private boolean isActive = false;
 
-    // Android 系统音效对象
     private Equalizer equalizer;
     private PresetReverb reverb;
     private Virtualizer virtualizer;
-    
-    // 当前音频会话 ID（将在播放时设置）
+
     private int audioSessionId = 0;
+    private int lastInitializedSessionId = -1;
 
     public SoundEffectEngine(Context context) {
         this.context = context;
-        // 初始化时会在设置 audioSessionId 后创建对象
     }
 
     public void setAudioSessionId(int sessionId) {
+        Log.d(TAG, "setAudioSessionId called with: " + sessionId + ", current: " + this.audioSessionId);
         this.audioSessionId = sessionId;
         initEffects();
         applyConfig();
@@ -36,36 +35,61 @@ public class SoundEffectEngine {
 
     private void initEffects() {
         try {
-            if (audioSessionId != 0) {
-                // 初始化 Equalizer
-                if (equalizer != null) {
-                    equalizer.release();
-                }
-                equalizer = new Equalizer(0, audioSessionId);
-                equalizer.setEnabled(true);
-                
-                // 初始化 PresetReverb
-                if (reverb != null) {
-                    reverb.release();
-                }
-                reverb = new PresetReverb(1, audioSessionId);
-                reverb.setEnabled(true);
-                
-                // 初始化 Virtualizer（3D环绕）
-                if (virtualizer != null) {
-                    virtualizer.release();
-                }
-                virtualizer = new Virtualizer(2, audioSessionId);
-                virtualizer.setEnabled(true);
-                
-                Log.d(TAG, "Audio effects initialized for session: " + audioSessionId);
+            if (audioSessionId == 0) {
+                Log.d(TAG, "Audio session ID is 0, skipping effect initialization");
+                return;
             }
+
+            if (audioSessionId == lastInitializedSessionId && equalizer != null) {
+                Log.d(TAG, "Same audio session, no need to reinitialize");
+                return;
+            }
+
+            releaseEffects();
+            lastInitializedSessionId = audioSessionId;
+
+            equalizer = new Equalizer(0, audioSessionId);
+            equalizer.setEnabled(true);
+            Log.d(TAG, "Equalizer created for session: " + audioSessionId);
+
+            reverb = new PresetReverb(1, audioSessionId);
+            reverb.setEnabled(true);
+            Log.d(TAG, "PresetReverb created for session: " + audioSessionId);
+
+            virtualizer = new Virtualizer(0, audioSessionId);
+            virtualizer.setEnabled(true);
+            Log.d(TAG, "Virtualizer created for session: " + audioSessionId);
+
+            Log.d(TAG, "Audio effects initialized successfully for session: " + audioSessionId);
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize audio effects", e);
         }
     }
 
+    private void releaseEffects() {
+        try {
+            if (equalizer != null) {
+                equalizer.release();
+                equalizer = null;
+                Log.d(TAG, "Equalizer released");
+            }
+            if (reverb != null) {
+                reverb.release();
+                reverb = null;
+                Log.d(TAG, "Reverb released");
+            }
+            if (virtualizer != null) {
+                virtualizer.release();
+                virtualizer = null;
+                Log.d(TAG, "Virtualizer released");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error releasing effects", e);
+        }
+    }
+
     public void updateConfig(ReadableMap configMap) {
+        Log.d(TAG, "updateConfig called");
         SoundEffectConfig newConfig = parseConfig(configMap);
         this.config = newConfig;
         this.isActive = newConfig.isActive();
@@ -74,45 +98,54 @@ public class SoundEffectEngine {
 
     private void applyConfig() {
         try {
-            // 应用 Equalizer 设置
-            if (equalizer != null && config.hasEqualizer()) {
+            if (audioSessionId == 0) {
+                Log.d(TAG, "Audio session not set, skipping config apply");
+                return;
+            }
+
+            if (equalizer != null) {
                 int numBands = equalizer.getNumberOfBands();
                 short[] range = equalizer.getBandLevelRange();
                 short minLevel = range[0];
                 short maxLevel = range[1];
-                
+
                 for (int i = 0; i < numBands && i < config.equalizerGains.length; i++) {
-                    // 将 dB 转换为 Equalizer 期望的范围
                     float gain = config.equalizerGains[i];
                     short level = (short) (gain * 100);
-                    // 限制在有效范围内
                     level = (short) Math.max(minLevel, Math.min(maxLevel, level));
                     equalizer.setBandLevel((short) i, level);
                 }
+                Log.d(TAG, "Equalizer config applied, " + numBands + " bands");
             }
-            
-            // 应用 PresetReverb 设置
+
             if (reverb != null && config.hasConvolution()) {
-                // 尝试将文件名映射到预设
                 short preset = PresetReverb.PRESET_NONE;
                 String fileName = config.convolutionFileName.toLowerCase();
-                
-                if (fileName.contains("hall")) preset = PresetReverb.PRESET_LARGEHALL;
-                else if (fileName.contains("large")) preset = PresetReverb.PRESET_LARGEROOM;
-                else if (fileName.contains("medium")) preset = PresetReverb.PRESET_MEDIUMROOM;
-                else if (fileName.contains("small") || fileName.contains("telephone")) preset = PresetReverb.PRESET_SMALLROOM;
-                
+
+                if (fileName.contains("hall")) {
+                    preset = PresetReverb.PRESET_LARGEHALL;
+                } else if (fileName.contains("large")) {
+                    preset = PresetReverb.PRESET_LARGEROOM;
+                } else if (fileName.contains("medium")) {
+                    preset = PresetReverb.PRESET_MEDIUMROOM;
+                } else if (fileName.contains("small") || fileName.contains("telephone")) {
+                    preset = PresetReverb.PRESET_SMALLROOM;
+                } else if (fileName.contains("plate")) {
+                    preset = PresetReverb.PRESET_PLATE;
+                }
+
                 reverb.setPreset(preset);
+                Log.d(TAG, "Reverb preset applied: " + preset + " for file: " + fileName);
             }
-            
-            // 应用 Virtualizer（3D环绕）设置
+
             if (virtualizer != null && config.hasPanner()) {
                 short strength = (short) (config.pannerSoundR * 100);
                 strength = (short) Math.max(0, Math.min(1000, strength));
                 virtualizer.setStrength(strength);
+                Log.d(TAG, "Virtualizer strength applied: " + strength);
             }
-            
-            Log.d(TAG, "Sound effect config applied");
+
+            Log.d(TAG, "Sound effect config applied successfully");
         } catch (Exception e) {
             Log.e(TAG, "Failed to apply sound effect config", e);
         }
@@ -121,7 +154,6 @@ public class SoundEffectEngine {
     private SoundEffectConfig parseConfig(ReadableMap configMap) {
         SoundEffectConfig config = new SoundEffectConfig();
 
-        // 解析均衡器配置
         ReadableMap eqConfig = configMap.hasKey("equalizer") ? configMap.getMap("equalizer") : configMap;
         if (eqConfig != null) {
             config.equalizerEnabled = eqConfig.hasKey("enabled") && eqConfig.getBoolean("enabled");
@@ -137,7 +169,6 @@ public class SoundEffectEngine {
             }
         }
 
-        // 解析混响配置
         ReadableMap convConfig = configMap.hasKey("convolution") ? configMap.getMap("convolution") : null;
         if (convConfig != null) {
             config.convolutionFileName = convConfig.hasKey("fileName") ? convConfig.getString("fileName") : "";
@@ -146,7 +177,6 @@ public class SoundEffectEngine {
             config.convolutionSendGain = convConfig.hasKey("sendGain") ? (float) convConfig.getDouble("sendGain") : 0.0f;
         }
 
-        // 解析3D环绕配置
         ReadableMap pannerConfig = configMap.hasKey("panner") ? configMap.getMap("panner") : null;
         if (pannerConfig != null) {
             config.pannerEnabled = pannerConfig.hasKey("enabled") && pannerConfig.getBoolean("enabled");
@@ -154,7 +184,6 @@ public class SoundEffectEngine {
             config.pannerSpeed = pannerConfig.hasKey("speed") ? (float) pannerConfig.getDouble("speed") : 25.0f;
         }
 
-        // 解析变调配置
         ReadableMap pitchConfig = configMap.hasKey("pitchShifter") ? configMap.getMap("pitchShifter") : null;
         if (pitchConfig != null) {
             config.pitchPlaybackRate = pitchConfig.hasKey("playbackRate") ? (float) pitchConfig.getDouble("playbackRate") : 1.0f;
@@ -172,22 +201,8 @@ public class SoundEffectEngine {
     }
 
     public void release() {
-        try {
-            if (equalizer != null) {
-                equalizer.release();
-                equalizer = null;
-            }
-            if (reverb != null) {
-                reverb.release();
-                reverb = null;
-            }
-            if (virtualizer != null) {
-                virtualizer.release();
-                virtualizer = null;
-            }
-            Log.d(TAG, "Audio effects released");
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to release audio effects", e);
-        }
+        releaseEffects();
+        lastInitializedSessionId = -1;
+        Log.d(TAG, "Audio effects released");
     }
 }
