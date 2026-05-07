@@ -20,7 +20,7 @@ public class SoundEffectEngine {
     private Virtualizer virtualizer;
 
     private int audioSessionId = 0;
-    private int lastInitializedSessionId = -1;
+    private boolean effectsInitialized = false;
 
     public SoundEffectEngine(Context context) {
         this.context = context;
@@ -35,57 +35,62 @@ public class SoundEffectEngine {
 
     private void initEffects() {
         try {
-            if (audioSessionId == 0) {
-                Log.d(TAG, "Audio session ID is 0, skipping effect initialization");
+            if (audioSessionId < 0) {
+                Log.d(TAG, "Invalid audio session ID, skipping effect initialization");
                 return;
             }
 
-            if (audioSessionId == lastInitializedSessionId && equalizer != null) {
-                Log.d(TAG, "Same audio session, no need to reinitialize");
-                return;
+            releaseEffectsInternal();
+
+            int targetSession = audioSessionId;
+            if (targetSession == 0) {
+                targetSession = 0;
+                Log.d(TAG, "Using session 0 for global effects");
             }
 
-            releaseEffects();
-            lastInitializedSessionId = audioSessionId;
-
-            equalizer = new Equalizer(0, audioSessionId);
+            equalizer = new Equalizer(0, targetSession);
             equalizer.setEnabled(true);
-            Log.d(TAG, "Equalizer created for session: " + audioSessionId);
+            Log.d(TAG, "Equalizer created for session: " + targetSession);
 
-            reverb = new PresetReverb(1, audioSessionId);
+            reverb = new PresetReverb(0, targetSession);
             reverb.setEnabled(true);
-            Log.d(TAG, "PresetReverb created for session: " + audioSessionId);
+            Log.d(TAG, "PresetReverb created for session: " + targetSession);
 
-            virtualizer = new Virtualizer(0, audioSessionId);
+            virtualizer = new Virtualizer(0, targetSession);
             virtualizer.setEnabled(true);
-            Log.d(TAG, "Virtualizer created for session: " + audioSessionId);
+            Log.d(TAG, "Virtualizer created for session: " + targetSession);
 
-            Log.d(TAG, "Audio effects initialized successfully for session: " + audioSessionId);
+            effectsInitialized = true;
+            Log.d(TAG, "Audio effects initialized successfully for session: " + targetSession);
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize audio effects", e);
+            effectsInitialized = false;
         }
     }
 
-    private void releaseEffects() {
+    private void releaseEffectsInternal() {
         try {
             if (equalizer != null) {
                 equalizer.release();
                 equalizer = null;
-                Log.d(TAG, "Equalizer released");
             }
             if (reverb != null) {
                 reverb.release();
                 reverb = null;
-                Log.d(TAG, "Reverb released");
             }
             if (virtualizer != null) {
                 virtualizer.release();
                 virtualizer = null;
-                Log.d(TAG, "Virtualizer released");
             }
+            effectsInitialized = false;
         } catch (Exception e) {
             Log.e(TAG, "Error releasing effects", e);
         }
+    }
+
+    public void releaseEffects() {
+        releaseEffectsInternal();
+        Log.d(TAG, "Audio effects released");
     }
 
     public void updateConfig(ReadableMap configMap) {
@@ -98,51 +103,66 @@ public class SoundEffectEngine {
 
     private void applyConfig() {
         try {
-            if (audioSessionId == 0) {
-                Log.d(TAG, "Audio session not set, skipping config apply");
+            if (!effectsInitialized) {
+                Log.d(TAG, "Effects not initialized, will initialize on session set");
+                if (audioSessionId >= 0) {
+                    initEffects();
+                }
                 return;
             }
 
             if (equalizer != null) {
-                int numBands = equalizer.getNumberOfBands();
-                short[] range = equalizer.getBandLevelRange();
-                short minLevel = range[0];
-                short maxLevel = range[1];
+                try {
+                    short numBands = equalizer.getNumberOfBands();
+                    short[] range = equalizer.getBandLevelRange();
+                    short minLevel = range[0];
+                    short maxLevel = range[1];
 
-                for (int i = 0; i < numBands && i < config.equalizerGains.length; i++) {
-                    float gain = config.equalizerGains[i];
-                    short level = (short) (gain * 100);
-                    level = (short) Math.max(minLevel, Math.min(maxLevel, level));
-                    equalizer.setBandLevel((short) i, level);
+                    for (int i = 0; i < numBands && i < config.equalizerGains.length; i++) {
+                        float gain = config.equalizerGains[i];
+                        short level = (short) (gain * 100);
+                        level = (short) Math.max(minLevel, Math.min(maxLevel, level));
+                        equalizer.setBandLevel((short) i, level);
+                    }
+                    Log.d(TAG, "Equalizer config applied, " + numBands + " bands");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error applying equalizer config: " + e.getMessage());
                 }
-                Log.d(TAG, "Equalizer config applied, " + numBands + " bands");
             }
 
             if (reverb != null && config.hasConvolution()) {
-                short preset = PresetReverb.PRESET_NONE;
-                String fileName = config.convolutionFileName.toLowerCase();
+                try {
+                    short preset = PresetReverb.PRESET_NONE;
+                    String fileName = config.convolutionFileName.toLowerCase();
 
-                if (fileName.contains("hall")) {
-                    preset = PresetReverb.PRESET_LARGEHALL;
-                } else if (fileName.contains("large")) {
-                    preset = PresetReverb.PRESET_LARGEROOM;
-                } else if (fileName.contains("medium")) {
-                    preset = PresetReverb.PRESET_MEDIUMROOM;
-                } else if (fileName.contains("small") || fileName.contains("telephone")) {
-                    preset = PresetReverb.PRESET_SMALLROOM;
-                } else if (fileName.contains("plate")) {
-                    preset = PresetReverb.PRESET_PLATE;
+                    if (fileName.contains("hall")) {
+                        preset = PresetReverb.PRESET_LARGEHALL;
+                    } else if (fileName.contains("large")) {
+                        preset = PresetReverb.PRESET_LARGEROOM;
+                    } else if (fileName.contains("medium")) {
+                        preset = PresetReverb.PRESET_MEDIUMROOM;
+                    } else if (fileName.contains("small") || fileName.contains("telephone")) {
+                        preset = PresetReverb.PRESET_SMALLROOM;
+                    } else if (fileName.contains("plate")) {
+                        preset = PresetReverb.PRESET_PLATE;
+                    }
+
+                    reverb.setPreset(preset);
+                    Log.d(TAG, "Reverb preset applied: " + preset);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error applying reverb config: " + e.getMessage());
                 }
-
-                reverb.setPreset(preset);
-                Log.d(TAG, "Reverb preset applied: " + preset + " for file: " + fileName);
             }
 
             if (virtualizer != null && config.hasPanner()) {
-                short strength = (short) (config.pannerSoundR * 100);
-                strength = (short) Math.max(0, Math.min(1000, strength));
-                virtualizer.setStrength(strength);
-                Log.d(TAG, "Virtualizer strength applied: " + strength);
+                try {
+                    short strength = (short) (config.pannerSoundR * 100);
+                    strength = (short) Math.max(0, Math.min(1000, strength));
+                    virtualizer.setStrength(strength);
+                    Log.d(TAG, "Virtualizer strength applied: " + strength);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error applying virtualizer config: " + e.getMessage());
+                }
             }
 
             Log.d(TAG, "Sound effect config applied successfully");
@@ -200,9 +220,12 @@ public class SoundEffectEngine {
         return isActive;
     }
 
+    public boolean isEffectsInitialized() {
+        return effectsInitialized;
+    }
+
     public void release() {
-        releaseEffects();
-        lastInitializedSessionId = -1;
+        releaseEffectsInternal();
         Log.d(TAG, "Audio effects released");
     }
 }

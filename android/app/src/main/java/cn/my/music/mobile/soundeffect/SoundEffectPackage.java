@@ -15,6 +15,7 @@ public class SoundEffectPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new SoundEffectModule(reactContext));
+        modules.add(new AudioSessionModule(reactContext));
         return modules;
     }
 
